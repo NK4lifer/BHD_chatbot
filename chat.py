@@ -1,4 +1,4 @@
-# chat.py
+"""# chat.py
 import random
 from database import Database
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         resp = get_response(sentence)
         print(resp)
-
+"""
 """
 class ChatBot:
     def __init__(self, db: Database):
