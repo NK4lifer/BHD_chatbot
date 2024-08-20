@@ -1,88 +1,43 @@
-"""# chat.py
-import random
-from database import Database
+import ollama
+from ollama import Client, ResponseError
 
-import random
-import json
+# Ensure the Ollama server is running at the correct host and port
+client = Client(host="http://localhost:11500")
 
-import torch
+model_name = "llama3.1"  # Replace with the correct model name if different
 
-from model import NeuralNet
-from nltk_util import bag_of_words, tokenize
+# Check if the model is available; if not, pull it first
+try:
+    response = client.chat(
+        model="llama3.1", 
+        messages=[
+            {'role': 'user', 'content': 'What movies are being displayed today?'},
+        ]
+    )
+except ResponseError as e:
+    print('Error:', e.error)
+    if e.status_code == 404:  # Model not found
+        print(f"Model {"llama3.1"} not found. Pulling the model...")
+        ollama.pull("llama3.1")  # Download the model
+        response = client.chat(
+            model="llama3.1", 
+            messages=[
+                {'role': 'user', 'content': 'What movies are being displayed today?'},
+            ]
+        )
+    else:
+        raise
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Generating a response using the model
+generate_response = ollama.generate(model=model_name, prompt='What movies are being displayed today?')
+print(generate_response)
 
-with open('intents.json', 'r') as json_data:
-    intents = json.load(json_data)
+# Streaming the chat response
+stream = ollama.chat(
+    model="llama3.1",
+    messages=[{'role': 'user', 'content': 'What movies are being displayed today?'}],
+    stream=True,
+)
 
-FILE = "data.pth"
-data = torch.load(FILE)
-
-input_size = data["input_size"]
-hidden_size = data["hidden_size"]
-output_size = data["output_size"]
-all_words = data['all_words']
-tags = data['tags']
-model_state = data["model_state"]
-
-model = NeuralNet(input_size, hidden_size, output_size).to(device)
-model.load_state_dict(model_state)
-model.eval()
-
-bot_name = "Sam"
-
-def get_response(msg):
-    sentence = tokenize(msg)
-    X = bag_of_words(sentence, all_words)
-    X = X.reshape(1, X.shape[0])
-    X = torch.from_numpy(X).to(device)
-
-    output = model(X)
-    _, predicted = torch.max(output, dim=1)
-
-    tag = tags[predicted.item()]
-
-    probs = torch.softmax(output, dim=1)
-    prob = probs[0][predicted.item()]
-    if prob.item() > 0.95:
-        for intent in intents['intents']:
-            if tag == intent["tag"]:
-                return random.choice(intent['responses'])
-    
-    return "I do not understand..."
-
-
-if __name__ == "__main__":
-    print("Let's chat! (type 'quit' to exit)")
-    while True:
-        # sentence = "do you use credit cards?"
-        sentence = input("You: ")
-        if sentence == "quit":
-            break
-
-        resp = get_response(sentence)
-        print(resp)
-"""
-"""
-class ChatBot:
-    def __init__(self, db: Database):
-        self.db = db
-
-    def get_response(self, user_input: str):
-        intents = self.db.get_intents()
-        for intent in intents:
-            if user_input.lower() in [pattern.lower() for pattern in intent["patterns"]]:
-                return random.choice(intent["responses"])
-        return "I don't understand that."
-
-    def get_movie_synopsis(self, title: str):
-        movie = self.db.get_movie_info(title)
-        if movie:
-            return movie.get("synopsis", "Synopsis not found.")
-        return "Movie not found."
-
-# Initialize the chatbot with the local database
-local_db = Database("mongodb://localhost:27017", "local")
-chatbot = ChatBot(local_db)
-
-"""
+for chunk in stream:
+    print(chunk['message']['content'], end='', flush=True)
