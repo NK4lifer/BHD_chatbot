@@ -31,3 +31,12 @@ def get_movie(title: str):
     else: 
         return {"synopsis": synopsis}
 # To run the app, use: uvicorn main:app --reload
+
+import uvicorn
+
+def runUvicorn(port):
+    uvicorn.run(app, host="0.0.0.0", port=int(port), log_level="info")
+
+
+if __name__ == "__main__":
+    runUvicorn(8080)
