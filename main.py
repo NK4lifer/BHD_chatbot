@@ -20,8 +20,14 @@ def read_root():
 
 @app.post("/chat")
 def chat(user_input: str):
-    response = chatbot.get_response(user_input)
-    return {"response": response}
+    #response = chatbot.get_response(user_input)
+    # step 1: call api ollama localhost:15000/api/embed -> "vector of user_input"
+    # step2: "vector of user_input" query mongodb and us consine -> get top 5 row
+    # step3: build system prompt use top 5 row -> system prompt
+    # step4: build user prompt use "user_input" -> user prompt
+    # step5: call ollama api/generate { system prompt, user prompt}
+    # step6: response of ollama -> process text json abit then  return {"response": response}
+    pass
 
 @app.get("/movie/{title}")
 def get_movie(title: str):
